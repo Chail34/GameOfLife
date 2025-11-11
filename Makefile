@@ -9,8 +9,8 @@
 #
 # NE PAS OUBLIER D'AJOUTER LA LISTE DES DEPENDANCES A LA FIN DU FICHIER
 
-CIBLE = tp
-SRCS =  src/Camera.cpp tp.cpp src/Trackball.cpp 
+CIBLE = main
+SRCS =  src/Camera.cpp main.cpp src/Trackball.cpp 
 LIBS =  -L/usr/lib -lglut -lGLU -lGL -lm -lpthread -lgsl -lgslcblas
 
 #########################################################"
@@ -60,7 +60,7 @@ dep:
 
 # liste des dépendances générée par 'make dep'
 Camera.o: src/Camera.cpp src/Camera.h src/Vec3.h src/Trackball.h
-tp.o: tp.cpp src/Vec3.h src/Camera.h src/Trackball.h
+main.o: main.cpp src/Vec3.h src/Camera.h src/Trackball.h
 Trackball.o: src/Trackball.cpp src/Trackball.h
 
 
