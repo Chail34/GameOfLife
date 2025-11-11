@@ -3,6 +3,7 @@
 
 #include "src/Vec3.h"
 #include <vector>
+using namespace std;
 
 // ---------- STRUCTURES ----------
 
@@ -188,6 +189,32 @@ std::vector<Vec3> sommetsCube(Vec3 centre, double length){
 
     return sommets ;
 }
+
+std::vector<Vec3> sommetsPave(Vec3 centre, double lx, double ly, double lz) {
+
+    std::vector<Vec3> sommets;
+    
+    double demiX = lx / 2.0;
+    double demiY = ly / 2.0;
+    double demiZ = lz / 2.0;
+
+    double posX[] = {-demiX, demiX};
+    double posY[] = {-demiY, demiY};
+    double posZ[] = {-demiZ, demiZ};
+
+    for (double x : posX) {
+        for (double y : posY) {
+            for (double z : posZ) {
+                sommets.push_back(Vec3(centre[0] + x,
+                                       centre[1] + y,
+                                       centre[2] + z));
+            }
+        }
+    }
+
+    return sommets;
+}
+
 
 double dist(Vec3 a, Vec3 b){
     double x = b[0] - a[0] ;

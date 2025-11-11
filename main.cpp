@@ -30,9 +30,8 @@
 #include "src/Vec3.h"
 #include "src/Camera.h"
 
-#include "Voxel.h"
-#include "Octree.h"
 #include "utils.h"
+using namespace std;
 
 
 // Fonction permettant d'afficher des points avec une certaine couleur
@@ -422,8 +421,177 @@ void drawNormals(Mesh const& i_mesh){
 // ------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------
 
-bool activeFace = true ;
+// Variables globales
+bool playTime = false ;
+bool displayModification = false ;
+bool display2D = false ;
+bool display3D = true ;
 
+float R = 255.f, G = 0.f, B = 0.f ;
+float t = 0.0f; // "temps" simulé
+
+double tailleVoxel = .05 ;
+int resolution = 20 ;
+float tailleGrille = tailleVoxel*resolution ;
+float bord = tailleGrille/2  ;
+float mX = bord-tailleVoxel, mY = -bord ;
+float X = 0, Y = 0 ;
+
+unsigned int GlobalTime = 0 ;
+unsigned int vitesse = 1 ;
+int generation = 0 ;
+
+std::vector<std::vector<int>> etats2D;
+std::vector<std::vector<std::vector<int>>> etats3D;
+
+void reset(){
+    etats2D.resize(0);
+    etats2D.resize(resolution, std::vector<int>(resolution, 0));
+
+    etats3D.resize(resolution);
+    for (int i = 0; i < resolution; ++i) {
+        etats3D[i].resize(resolution);
+        for (int j = 0; j < resolution ; ++j) {
+            etats3D[i][j].resize(resolution, 0); // chaque sous-ligne a Z éléments initialisés à 0
+        }
+    }
+
+
+}
+
+// Appelée à chaque frame
+void updateColor() {
+    t += 0.1f; // vitesse du changement
+
+    R = (0.5f + 0.5f * sin(t))*255.f;
+    G = (0.5f + 0.5f * sin(t + 2.0f * M_PI / 3.0f))*255.f; // déphasé de 120°
+    B = (0.5f + 0.5f * sin(t + 4.0f * M_PI / 3.0f))*255.f; // déphasé de 240°
+}
+
+// Créer une soupe
+void soup(){
+    for(int i = 0 ; i < resolution ; i++){
+        for(int j = 0 ; j < resolution ; j++){
+            etats2D[i][j] = rand() % 2 ;
+        }
+    }
+
+    for(int i = 0 ; i < resolution ; i++){
+        for(int j = 0 ; j < resolution ; j++){
+            for(int k = 0 ; k < resolution ; k++){
+                etats3D[i][j][k] = rand() % 2 ;
+            }
+        }
+    }
+}
+
+// Calcul de l'état en fonction des voisins
+int nextState2D(std::vector<std::vector<int>> states, int ligne, int colonne){
+
+    if(ligne == 0 || ligne == resolution-1 || colonne == 0 || colonne == resolution-1){
+        // Si on est au bord, on tue la cellule (arbitraire)
+        return 0 ;
+    }
+    int actualState = states[ligne][colonne] ;
+    int voisins[8] = {states[ligne-1][colonne-1]
+                     ,states[ligne-1][colonne]
+                     ,states[ligne-1][colonne+1]
+                     ,states[ligne][colonne-1]
+                     ,states[ligne][colonne+1]
+                     ,states[ligne+1][colonne-1]
+                     ,states[ligne+1][colonne]
+                     ,states[ligne+1][colonne+1]};
+    
+    int voisinsVivants = 0 ;
+    for(int i = 0 ; i < 8 ; i++){
+        voisinsVivants += voisins[i] ;
+    }
+
+    // Une cellule morte possédant exactement trois cellules voisines vivantes devient vivante (elle naît)
+    if((actualState == 0) && (voisinsVivants == 3)){
+        return 1 ;
+    }
+    // Une cellule vivante ne possédant pas exactement deux ou trois cellules voisines vivantes meurt
+    if((actualState == 1) && (voisinsVivants != 2) && (voisinsVivants != 3)){
+        return 0 ;
+    }
+
+    return actualState ;
+}
+
+int nextState3D(std::vector<std::vector<std::vector<int>>> states, int ligne, int colonne, int profondeur){
+
+    if(ligne == 0 || ligne == resolution-1 || colonne == 0 || colonne == resolution-1){
+        // Si on est au bord, on tue la cellule (arbitraire)
+        return 0 ;
+    }
+    int actualState = states[ligne][colonne][profondeur] ;
+    int voisins[26] = {states[ligne-1][colonne-1][profondeur-1]
+                      ,states[ligne-1][colonne-1][profondeur]
+                      ,states[ligne-1][colonne-1][profondeur+1]
+                      ,states[ligne-1][colonne][profondeur-1]
+                      ,states[ligne-1][colonne][profondeur]
+                      ,states[ligne-1][colonne][profondeur+1]
+                      ,states[ligne-1][colonne+1][profondeur-1]
+                      ,states[ligne-1][colonne+1][profondeur]
+                      ,states[ligne-1][colonne+1][profondeur+1]
+                      ,states[ligne][colonne+1][profondeur-1]
+                      ,states[ligne][colonne+1][profondeur]
+                      ,states[ligne][colonne+1][profondeur+1]
+                      ,states[ligne][colonne][profondeur-1]
+                      ,states[ligne][colonne][profondeur+1]
+                      ,states[ligne][colonne+1][profondeur-1]
+                      ,states[ligne][colonne+1][profondeur]
+                      ,states[ligne][colonne+1][profondeur+1]
+                      ,states[ligne+1][colonne-1][profondeur-1]
+                      ,states[ligne+1][colonne-1][profondeur]
+                      ,states[ligne+1][colonne-1][profondeur+1]
+                      ,states[ligne+1][colonne][profondeur-1]
+                      ,states[ligne+1][colonne][profondeur]
+                      ,states[ligne+1][colonne][profondeur+1]
+                      ,states[ligne+1][colonne+1][profondeur-1]
+                      ,states[ligne+1][colonne+1][profondeur]
+                      ,states[ligne+1][colonne+1][profondeur+1]};
+    
+    int voisinsVivants = 0 ;
+    for(int i = 0 ; i < 26 ; i++){
+        voisinsVivants += voisins[i] ;
+    }
+
+    // Une cellule morte possédant entre 9 et 15 cellules voisines vivantes devient vivante (elle naît)
+    if((actualState == 0) && (voisinsVivants > 8) && (voisinsVivants < 13)){
+        return 1 ;
+    }
+    // Une cellule vivante ne possédant pas exactement entre 6 et 16 cellules voisines vivantes meurt
+    if((actualState == 1) && ((voisinsVivants < 6) || (voisinsVivants > 13)) ){
+        return 0 ;
+    }
+
+    return actualState ;
+}
+
+// Calcul la génération suivante
+void nextGeneration(){
+    
+    int l ;
+    std::vector<std::vector<int>> copieEtats2D = etats2D;
+    for(int i = 0 ; i < resolution ; i++){
+        for(int j = 0 ; j < resolution ; j++){
+            l = resolution - 1 - j ;
+            etats2D[l][i] = nextState2D(copieEtats2D,l,i);
+        }
+    }
+
+    std::vector<std::vector<std::vector<int>>> copieEtats3D = etats3D;
+    for(int i = 0 ; i < resolution ; i++){
+        for(int j = 0 ; j < resolution ; j++){
+            for(int k = 0 ; k < resolution ; k++)
+            etats3D[i][j][k] = nextState3D(copieEtats3D,i,j,k);
+        }
+    }
+}
+
+// Affichages du jeu de la vie
 void DisplayCell(Vec3 centre, double length, int state){
     
     float color ;
@@ -511,125 +679,7 @@ void DisplayCell(Vec3 centre, double length, int state){
     glEnd();
 }
 
-void afficheGrilleVoxels(Vec3 centre, double tailleGrille, double nbVoxels, float R, float G, float B){
-
-    double tailleVoxel = tailleGrille / nbVoxels ;
-    
-    for(double z = 0 ; z < nbVoxels ; z++){
-        for(double y = 0 ; y < nbVoxels ; y++){
-            for(double x = 0 ; x < nbVoxels ; x++){
-
-                double nx = tailleVoxel * -x ;
-                double ny = tailleVoxel * -y ;
-                double nz = tailleVoxel * -z ;
-
-                Vec3 avencement = Vec3(nx,ny,nz) ;
-                Vec3 translation = Vec3(tailleGrille/2.f) - Vec3(tailleVoxel/2.f) + avencement ;
-                Vec3 centreVoxel = centre + translation ;
-
-                DisplayCell(centreVoxel, tailleVoxel, true);
-            }
-        }
-    }
-}
-
-
-// Variables globales
-bool playTime = false ;
-bool displayModification = true ;
-
-float R = 255.f, G = 0.f, B = 0.f ;
-float t = 0.0f; // "temps" simulé
-
-double tailleVoxel = .02 ;
-int resolution = 100 ;
-float tailleGrille = tailleVoxel*resolution ;
-float bord = tailleGrille/2  ;
-float mX = bord-tailleVoxel, mY = -bord ;
-float X = 0, Y = 0 ;
-
-unsigned int GlobalTime = 0 ;
-unsigned int vitesse = 1 ;
-int generation = 0 ;
-
-std::vector<std::vector<int>> etats;
-// int etats[resolution][resolution] ;
-
-void reset(){
-    std::cout << "Lancement reset()" << std::endl ;
-    etats.resize(0);
-    etats.resize(resolution, std::vector<int>(resolution, 0));
-}
-
-// Appelée à chaque frame
-void updateColor() {
-    t += 0.1f; // vitesse du changement
-
-    R = (0.5f + 0.5f * sin(t))*255.f;
-    G = (0.5f + 0.5f * sin(t + 2.0f * M_PI / 3.0f))*255.f; // déphasé de 120°
-    B = (0.5f + 0.5f * sin(t + 4.0f * M_PI / 3.0f))*255.f; // déphasé de 240°
-}
-
-// Créer une soupe
-void soup(){
-    std::cout << "resolution (soup) : " << resolution << std::endl ; 
-    std::cout << "etats.size() : " << etats.size() << std::endl ; 
-    std::cout << "etats[0].size() : " << etats[0].size() << std::endl ; 
-    for(int i = 0 ; i < resolution ; i++){
-        for(int j = 0 ; j < resolution ; j++){
-            etats[i][j] = rand() % 2 ;
-        }
-    }
-}
-
-// Calcul de l'état en fonction des voisins
-int nextState(std::vector<std::vector<int>> states, int ligne, int colonne){
-
-    if(ligne == 0 || ligne == resolution-1 || colonne == 0 || colonne == resolution-1){
-        // Si on est au bord, on tue la cellule (arbitraire)
-        return 0 ;
-    }
-    int actualState = states[ligne][colonne] ;
-    int voisins[8] = {states[ligne-1][colonne-1]
-                     ,states[ligne-1][colonne]
-                     ,states[ligne-1][colonne+1]
-                     ,states[ligne][colonne-1]
-                     ,states[ligne][colonne+1]
-                     ,states[ligne+1][colonne-1]
-                     ,states[ligne+1][colonne]
-                     ,states[ligne+1][colonne+1]};
-    
-    int voisinsVivants = 0 ;
-    for(int i = 0 ; i < 8 ; i++){
-        voisinsVivants += voisins[i] ;
-    }
-
-    // Une cellule morte possédant exactement trois cellules voisines vivantes devient vivante (elle naît)
-    if((actualState == 0) && (voisinsVivants == 3)){
-        return 1 ;
-    }
-    // Une cellule vivante ne possédant pas exactement deux ou trois cellules voisines vivantes meurt
-    if((actualState == 1) && (voisinsVivants != 2) && (voisinsVivants != 3)){
-        return 0 ;
-    }
-
-    return actualState ;
-}
-
-// Calcul la génération suivante
-void nextGeneration(){
-    int l ;
-    std::vector<std::vector<int>> copieEtats = etats;
-    for(int i = 0 ; i < resolution ; i++){
-        for(int j = 0 ; j < resolution ; j++){
-            l = resolution - 1 - j ;
-            etats[l][i] = nextState(copieEtats,l,i);
-        }
-    }
-}
-
-// Affichage du jeu de la vie
-void displayBoard(){
+void displayBoard2D(){
 
     Vec3 centreVoxel ;
     float x,y ;
@@ -640,13 +690,95 @@ void displayBoard(){
         x = -tailleGrille/2 + i*tailleVoxel ;
         for(int j = 0 ; j < resolution ; j++){
             y = -tailleGrille/2 + j*tailleVoxel ;
-            centreVoxel = Vec3(x,y,0);
-            l = resolution - 1 - j ;
-            etat = etats[l][i] ;
-            DisplayCell(centreVoxel, tailleVoxel, etat);
+                centreVoxel = Vec3(x,y,0);
+                l = resolution - 1 - j ;
+                etat = etats2D[l][i] ;
+                if(etat)
+                DisplayCell(centreVoxel, tailleVoxel, etat);
+            
         }
     }
 }
+
+void displayBoard2DArea(){
+
+    std::vector<Vec3> s = sommetsPave(Vec3(-tailleVoxel/2.f,-tailleVoxel/2.f,0), tailleGrille, tailleGrille, tailleVoxel);
+
+    glBegin(GL_QUAD_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(s[0][0],s[0][1],s[0][2]);
+    glVertex3f(s[1][0],s[1][1],s[1][2]);
+    glVertex3f(s[2][0],s[2][1],s[2][2]);
+    glVertex3f(s[3][0],s[3][1],s[3][2]);
+    glVertex3f(s[6][0],s[6][1],s[6][2]);
+    glVertex3f(s[7][0],s[7][1],s[7][2]);
+    glVertex3f(s[4][0],s[4][1],s[4][2]);
+    glVertex3f(s[5][0],s[5][1],s[5][2]);
+    glVertex3f(s[0][0],s[0][1],s[0][2]);
+    glVertex3f(s[1][0],s[1][1],s[1][2]);
+    glEnd();
+}
+
+void displayBoard3D(){
+
+    Vec3 centreVoxel ;
+    float x,y,z ;
+    bool etat ;
+    int l; // ligne
+
+    for(int i = 0 ; i < resolution ; i++){
+        x = -tailleGrille/2 + i*tailleVoxel ;
+        for(int j = 0 ; j < resolution ; j++){
+            y = -tailleGrille/2 + j*tailleVoxel ;
+            for(int k = 0 ; k < resolution ; k++){
+                z = -tailleGrille/2 + k*tailleVoxel ;
+                centreVoxel = Vec3(x,y,z);
+                etat = etats3D[i][j][k] ;
+                if(etat)
+                DisplayCell(centreVoxel, tailleVoxel, etat);
+            }
+        }
+    }
+}
+
+void displayBoard3DArea(){
+
+    std::vector<Vec3> vv = sommetsCube(Vec3(-tailleVoxel/2.f), tailleGrille);
+
+    glLineWidth(2.f);
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
+    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
+    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
+    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
+    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
+    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
+    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
+    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
+    glEnd();
+
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
+    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
+    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
+    glEnd();
+
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
+    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
+    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
+    glEnd();
+
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
+    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
+    glEnd();
+}
+
 
 void displayModif(){
 
@@ -702,7 +834,16 @@ void draw () {
 
     // drawReferenceFrame(centre,axisX, axisY, axisZ);
 
-    displayBoard();
+    if(display2D){
+        displayBoard2D();
+        displayBoard2DArea();
+    }
+
+    if(display3D){
+        displayBoard3D();
+        displayBoard3DArea();
+    }
+
     if(playTime){
         nextGeneration();
     }
@@ -746,7 +887,7 @@ void key (unsigned char keyPressed, int x, int y) {
     case '+':
         if(resolution < 150){
             resolution++ ;
-            etats.resize(resolution, std::vector<int>(resolution, 0));
+            etats2D.resize(resolution, std::vector<int>(resolution, 0));
         }
         std::cout << "resolution : " << resolution << std::endl ;
         break;
@@ -786,8 +927,16 @@ void key (unsigned char keyPressed, int x, int y) {
         break ;
     
     case ' ':
-        etats[X][Y] = !etats[X][Y] ;
+        etats2D[X][Y] = !etats2D[X][Y] ;
         std::cout << "Switch !" << std::endl ;
+        break;
+
+    case '2':
+        display2D = !display2D ;
+        break;
+    
+    case '3':
+        display3D = !display3D ;
         break;
 
     default:
