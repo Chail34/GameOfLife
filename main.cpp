@@ -313,7 +313,7 @@ void initLight () {
 
 void init () {
     camera.resize (SCREENWIDTH, SCREENHEIGHT);
-    initLight ();
+    // initLight ();
     glCullFace (GL_BACK);
     glDisable (GL_CULL_FACE);
     glDepthFunc (GL_LESS);
@@ -405,21 +405,12 @@ void drawNormals(Mesh const& i_mesh){
 }
 
 // ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------------------------------
+
+// Création VAO / VBO / EBO
+// - VAO : Vertex Array Object, sert à stocker la configuration des VBO
+// - VBO : Vertex Buffer Object, est une zone mémoire sur le GPU où stocker les sommets de la grille
+// - EBO : Indices des éléments du VBO
+
 
 // Variables globales
 bool playTime = false ;
@@ -430,8 +421,8 @@ bool display3D = true ;
 float R = 255.f, G = 0.f, B = 0.f ;
 float t = 0.0f; // "temps" simulé
 
-double tailleVoxel = .05 ;
-int resolution = 20 ;
+int resolution = 100 ;
+double tailleVoxel = 2.f/float(resolution) ;
 float tailleGrille = tailleVoxel*resolution ;
 float bord = tailleGrille/2  ;
 float mX = bord-tailleVoxel, mY = -bord ;
@@ -445,27 +436,19 @@ std::vector<std::vector<int>> etats2D;
 std::vector<std::vector<std::vector<int>>> etats3D;
 
 void reset(){
-    etats2D.resize(0);
-    etats2D.resize(resolution, std::vector<int>(resolution, 0));
-
-    etats3D.resize(resolution);
-    for (int i = 0; i < resolution; ++i) {
-        etats3D[i].resize(resolution);
-        for (int j = 0; j < resolution ; ++j) {
-            etats3D[i][j].resize(resolution, 0); // chaque sous-ligne a Z éléments initialisés à 0
-        }
-    }
-
-
+    etats2D.assign(resolution, std::vector<int>(resolution, 0));
+    etats3D.assign(resolution,
+                   std::vector<std::vector<int>>(resolution,
+                   std::vector<int>(resolution, 0)));
 }
 
 // Appelée à chaque frame
 void updateColor() {
     t += 0.1f; // vitesse du changement
 
-    R = (0.5f + 0.5f * sin(t))*255.f;
-    G = (0.5f + 0.5f * sin(t + 2.0f * M_PI / 3.0f))*255.f; // déphasé de 120°
-    B = (0.5f + 0.5f * sin(t + 4.0f * M_PI / 3.0f))*255.f; // déphasé de 240°
+    R = (0.5f + 0.5f * sin(t));
+    G = (0.5f + 0.5f * sin(t + 2.0f * M_PI / 3.0f)); // déphasé de 120°
+    B = (0.5f + 0.5f * sin(t + 4.0f * M_PI / 3.0f)); // déphasé de 240°
 }
 
 // Créer une soupe
@@ -559,11 +542,11 @@ int nextState3D(std::vector<std::vector<std::vector<int>>> states, int ligne, in
     }
 
     // Une cellule morte possédant entre 9 et 15 cellules voisines vivantes devient vivante (elle naît)
-    if((actualState == 0) && (voisinsVivants > 8) && (voisinsVivants < 13)){
+    if((actualState == 0) && (voisinsVivants > 8) && (voisinsVivants < 12)){
         return 1 ;
     }
     // Une cellule vivante ne possédant pas exactement entre 6 et 16 cellules voisines vivantes meurt
-    if((actualState == 1) && ((voisinsVivants < 6) || (voisinsVivants > 13)) ){
+    if((actualState == 1) && ((voisinsVivants < 6) || (voisinsVivants > 12)) ){
         return 0 ;
     }
 
@@ -571,7 +554,7 @@ int nextState3D(std::vector<std::vector<std::vector<int>>> states, int ligne, in
 }
 
 // Calcul la génération suivante
-void nextGeneration(){
+void nextGeneration2D(){
     
     int l ;
     std::vector<std::vector<int>> copieEtats2D = etats2D;
@@ -581,7 +564,9 @@ void nextGeneration(){
             etats2D[l][i] = nextState2D(copieEtats2D,l,i);
         }
     }
+}
 
+void nextGeneration3D(){
     std::vector<std::vector<std::vector<int>>> copieEtats3D = etats3D;
     for(int i = 0 ; i < resolution ; i++){
         for(int j = 0 ; j < resolution ; j++){
@@ -589,6 +574,11 @@ void nextGeneration(){
             etats3D[i][j][k] = nextState3D(copieEtats3D,i,j,k);
         }
     }
+}
+
+void nextGeneration(){
+    if(display2D) nextGeneration2D() ;
+    if(display3D) nextGeneration3D() ;
 }
 
 // Affichages du jeu de la vie
@@ -609,6 +599,7 @@ void DisplayCell(Vec3 centre, double length, int state){
     
     //On créer chaque face manuellement :
     glBegin(GL_QUAD_STRIP);
+    // glColor3f(R,G,B);
     glColor3f(color,color,color);
     
     // Face du bas
@@ -779,7 +770,6 @@ void displayBoard3DArea(){
     glEnd();
 }
 
-
 void displayModif(){
 
     float R,G,B ;
@@ -833,7 +823,7 @@ Vec3 axisZ = Vec3(0,0,1);
 void draw () {
 
     // drawReferenceFrame(centre,axisX, axisY, axisZ);
-
+    updateColor();
     if(display2D){
         displayBoard2D();
         displayBoard2DArea();
