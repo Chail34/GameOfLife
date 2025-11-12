@@ -254,6 +254,12 @@ bool isEquals(Vec3 a, Vec3 b){
     return a[0]==b[0] && a[1]==b[1] && a[2]==b[2] ;
 }
 
+bool isSamePosition(const Vec3& a, const Vec3& b, float epsilon = 1e-4f) {
+    return std::fabs(a[0] - b[0]) < epsilon
+        && std::fabs(a[1] - b[1]) < epsilon
+        && std::fabs(a[2] - b[2]) < epsilon;
+}
+
 std::vector<Vec3> minMaxVec3(std::vector<Vec3> grid_vertices){
 
     int n = grid_vertices.size() ;
@@ -273,5 +279,8 @@ std::vector<Vec3> minMaxVec3(std::vector<Vec3> grid_vertices){
     return res ;
 }
 
+void printVec3(Vec3 v){
+    std::cout << "("<<v[0]<<","<<v[1]<<","<<v[2]<<")" << std::endl ;
+}
 
 #endif

@@ -23,14 +23,16 @@
 #include <cstdlib>
 #include <map>
 #include <cmath>
+#include <random>
 
-#include <algorithm>
 #include <GL/glut.h>
 #include <float.h>
 #include "src/Vec3.h"
 #include "src/Camera.h"
 
-#include "utils.h"
+#include "src/utils.h"
+#include "src/Cell.h"
+#include "src/GameOfLife.h"
 using namespace std;
 
 
@@ -415,32 +417,22 @@ void drawNormals(Mesh const& i_mesh){
 // Variables globales
 bool playTime = false ;
 bool displayModification = false ;
-bool display2D = false ;
-bool display3D = true ;
+bool display2D = true ;
+bool display3D = false ;
 
 float R = 255.f, G = 0.f, B = 0.f ;
 float t = 0.0f; // "temps" simulé
+int tailleSoupe = 50 ;
 
-int resolution = 100 ;
-double tailleVoxel = 2.f/float(resolution) ;
-float tailleGrille = tailleVoxel*resolution ;
-float bord = tailleGrille/2  ;
-float mX = bord-tailleVoxel, mY = -bord ;
-float X = 0, Y = 0 ;
+double tailleVoxel = 0.02f;
+float mX = 0, mY = 0 ;
 
 unsigned int GlobalTime = 0 ;
 unsigned int vitesse = 1 ;
 int generation = 0 ;
 
-std::vector<std::vector<int>> etats2D;
-std::vector<std::vector<std::vector<int>>> etats3D;
-
-void reset(){
-    etats2D.assign(resolution, std::vector<int>(resolution, 0));
-    etats3D.assign(resolution,
-                   std::vector<std::vector<int>>(resolution,
-                   std::vector<int>(resolution, 0)));
-}
+std::vector<Cell> CELLS ;
+GameOfLife GAME = GameOfLife(CELLS, tailleVoxel) ;
 
 // Appelée à chaque frame
 void updateColor() {
@@ -451,140 +443,11 @@ void updateColor() {
     B = (0.5f + 0.5f * sin(t + 4.0f * M_PI / 3.0f)); // déphasé de 240°
 }
 
-// Créer une soupe
-void soup(){
-    for(int i = 0 ; i < resolution ; i++){
-        for(int j = 0 ; j < resolution ; j++){
-            etats2D[i][j] = rand() % 2 ;
-        }
-    }
-
-    for(int i = 0 ; i < resolution ; i++){
-        for(int j = 0 ; j < resolution ; j++){
-            for(int k = 0 ; k < resolution ; k++){
-                etats3D[i][j][k] = rand() % 2 ;
-            }
-        }
-    }
-}
-
-// Calcul de l'état en fonction des voisins
-int nextState2D(std::vector<std::vector<int>> states, int ligne, int colonne){
-
-    if(ligne == 0 || ligne == resolution-1 || colonne == 0 || colonne == resolution-1){
-        // Si on est au bord, on tue la cellule (arbitraire)
-        return 0 ;
-    }
-    int actualState = states[ligne][colonne] ;
-    int voisins[8] = {states[ligne-1][colonne-1]
-                     ,states[ligne-1][colonne]
-                     ,states[ligne-1][colonne+1]
-                     ,states[ligne][colonne-1]
-                     ,states[ligne][colonne+1]
-                     ,states[ligne+1][colonne-1]
-                     ,states[ligne+1][colonne]
-                     ,states[ligne+1][colonne+1]};
-    
-    int voisinsVivants = 0 ;
-    for(int i = 0 ; i < 8 ; i++){
-        voisinsVivants += voisins[i] ;
-    }
-
-    // Une cellule morte possédant exactement trois cellules voisines vivantes devient vivante (elle naît)
-    if((actualState == 0) && (voisinsVivants == 3)){
-        return 1 ;
-    }
-    // Une cellule vivante ne possédant pas exactement deux ou trois cellules voisines vivantes meurt
-    if((actualState == 1) && (voisinsVivants != 2) && (voisinsVivants != 3)){
-        return 0 ;
-    }
-
-    return actualState ;
-}
-
-int nextState3D(std::vector<std::vector<std::vector<int>>> states, int ligne, int colonne, int profondeur){
-
-    if(ligne == 0 || ligne == resolution-1 || colonne == 0 || colonne == resolution-1){
-        // Si on est au bord, on tue la cellule (arbitraire)
-        return 0 ;
-    }
-    int actualState = states[ligne][colonne][profondeur] ;
-    int voisins[26] = {states[ligne-1][colonne-1][profondeur-1]
-                      ,states[ligne-1][colonne-1][profondeur]
-                      ,states[ligne-1][colonne-1][profondeur+1]
-                      ,states[ligne-1][colonne][profondeur-1]
-                      ,states[ligne-1][colonne][profondeur]
-                      ,states[ligne-1][colonne][profondeur+1]
-                      ,states[ligne-1][colonne+1][profondeur-1]
-                      ,states[ligne-1][colonne+1][profondeur]
-                      ,states[ligne-1][colonne+1][profondeur+1]
-                      ,states[ligne][colonne+1][profondeur-1]
-                      ,states[ligne][colonne+1][profondeur]
-                      ,states[ligne][colonne+1][profondeur+1]
-                      ,states[ligne][colonne][profondeur-1]
-                      ,states[ligne][colonne][profondeur+1]
-                      ,states[ligne][colonne+1][profondeur-1]
-                      ,states[ligne][colonne+1][profondeur]
-                      ,states[ligne][colonne+1][profondeur+1]
-                      ,states[ligne+1][colonne-1][profondeur-1]
-                      ,states[ligne+1][colonne-1][profondeur]
-                      ,states[ligne+1][colonne-1][profondeur+1]
-                      ,states[ligne+1][colonne][profondeur-1]
-                      ,states[ligne+1][colonne][profondeur]
-                      ,states[ligne+1][colonne][profondeur+1]
-                      ,states[ligne+1][colonne+1][profondeur-1]
-                      ,states[ligne+1][colonne+1][profondeur]
-                      ,states[ligne+1][colonne+1][profondeur+1]};
-    
-    int voisinsVivants = 0 ;
-    for(int i = 0 ; i < 26 ; i++){
-        voisinsVivants += voisins[i] ;
-    }
-
-    // Une cellule morte possédant entre 9 et 15 cellules voisines vivantes devient vivante (elle naît)
-    if((actualState == 0) && (voisinsVivants > 8) && (voisinsVivants < 12)){
-        return 1 ;
-    }
-    // Une cellule vivante ne possédant pas exactement entre 6 et 16 cellules voisines vivantes meurt
-    if((actualState == 1) && ((voisinsVivants < 6) || (voisinsVivants > 12)) ){
-        return 0 ;
-    }
-
-    return actualState ;
-}
-
-// Calcul la génération suivante
-void nextGeneration2D(){
-    
-    int l ;
-    std::vector<std::vector<int>> copieEtats2D = etats2D;
-    for(int i = 0 ; i < resolution ; i++){
-        for(int j = 0 ; j < resolution ; j++){
-            l = resolution - 1 - j ;
-            etats2D[l][i] = nextState2D(copieEtats2D,l,i);
-        }
-    }
-}
-
-void nextGeneration3D(){
-    std::vector<std::vector<std::vector<int>>> copieEtats3D = etats3D;
-    for(int i = 0 ; i < resolution ; i++){
-        for(int j = 0 ; j < resolution ; j++){
-            for(int k = 0 ; k < resolution ; k++)
-            etats3D[i][j][k] = nextState3D(copieEtats3D,i,j,k);
-        }
-    }
-}
-
-void nextGeneration(){
-    if(display2D) nextGeneration2D() ;
-    if(display3D) nextGeneration3D() ;
-}
-
 // Affichages du jeu de la vie
-void DisplayCell(Vec3 centre, double length, int state){
+void DisplayCell(Cell c){
     
     float color ;
+    int state = c.getState() ;
 
     if(state == 1){
         color = 255.0f ;
@@ -595,12 +458,12 @@ void DisplayCell(Vec3 centre, double length, int state){
     }
 
     std::vector<Vec3> vv ; // On va créer un tableau pour stocker les sommets de notre voxel (voxel_vertice)
-    vv = sommetsCube(centre, length) ;
+    vv = sommetsCube(c.getPosition(), c.getSize()) ;
     
     //On créer chaque face manuellement :
     glBegin(GL_QUAD_STRIP);
     // glColor3f(R,G,B);
-    glColor3f(color,color,color);
+    glColor3f(color/255.f,color/255.f,color/255.f);
     
     // Face du bas
     glVertex3f(vv[0][0],vv[0][1],vv[0][2]);
@@ -670,116 +533,29 @@ void DisplayCell(Vec3 centre, double length, int state){
     glEnd();
 }
 
-void displayBoard2D(){
+void displayGame2D(){
 
-    Vec3 centreVoxel ;
-    float x,y ;
-    bool etat ;
-    int l; // ligne
-
-    for(int i = 0 ; i < resolution ; i++){
-        x = -tailleGrille/2 + i*tailleVoxel ;
-        for(int j = 0 ; j < resolution ; j++){
-            y = -tailleGrille/2 + j*tailleVoxel ;
-                centreVoxel = Vec3(x,y,0);
-                l = resolution - 1 - j ;
-                etat = etats2D[l][i] ;
-                if(etat)
-                DisplayCell(centreVoxel, tailleVoxel, etat);
-            
-        }
+    std::vector<Cell> cells = GAME.getTabCell() ;
+    for(Cell cell : cells){
+        DisplayCell(cell) ;
     }
-}
-
-void displayBoard2DArea(){
-
-    std::vector<Vec3> s = sommetsPave(Vec3(-tailleVoxel/2.f,-tailleVoxel/2.f,0), tailleGrille, tailleGrille, tailleVoxel);
-
-    glBegin(GL_QUAD_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(s[0][0],s[0][1],s[0][2]);
-    glVertex3f(s[1][0],s[1][1],s[1][2]);
-    glVertex3f(s[2][0],s[2][1],s[2][2]);
-    glVertex3f(s[3][0],s[3][1],s[3][2]);
-    glVertex3f(s[6][0],s[6][1],s[6][2]);
-    glVertex3f(s[7][0],s[7][1],s[7][2]);
-    glVertex3f(s[4][0],s[4][1],s[4][2]);
-    glVertex3f(s[5][0],s[5][1],s[5][2]);
-    glVertex3f(s[0][0],s[0][1],s[0][2]);
-    glVertex3f(s[1][0],s[1][1],s[1][2]);
-    glEnd();
 }
 
 void displayBoard3D(){
 
-    Vec3 centreVoxel ;
-    float x,y,z ;
-    bool etat ;
-    int l; // ligne
 
-    for(int i = 0 ; i < resolution ; i++){
-        x = -tailleGrille/2 + i*tailleVoxel ;
-        for(int j = 0 ; j < resolution ; j++){
-            y = -tailleGrille/2 + j*tailleVoxel ;
-            for(int k = 0 ; k < resolution ; k++){
-                z = -tailleGrille/2 + k*tailleVoxel ;
-                centreVoxel = Vec3(x,y,z);
-                etat = etats3D[i][j][k] ;
-                if(etat)
-                DisplayCell(centreVoxel, tailleVoxel, etat);
-            }
-        }
-    }
-}
-
-void displayBoard3DArea(){
-
-    std::vector<Vec3> vv = sommetsCube(Vec3(-tailleVoxel/2.f), tailleGrille);
-
-    glLineWidth(2.f);
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
-    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
-    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
-    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
-    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
-    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
-    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
-    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
-    glEnd();
-
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
-    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
-    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
-    glEnd();
-
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
-    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
-    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
-    glEnd();
-
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
-    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
-    glEnd();
 }
 
 void displayModif(){
 
     float R,G,B ;
     R = 1.f ; G = 0.f ; B = 0.f ;
-    Vec3 centreVoxel = Vec3(mY, mX, 0) ;
+    Vec3 centreVoxel = Vec3(mX, mY, 0) ;
     
     std::vector<Vec3> vv ; // On va créer un tableau pour stocker les sommets de notre voxel (voxel_vertice)
     vv = sommetsCube(centreVoxel, tailleVoxel*1.05f) ;
 
-    glLineWidth(2.5f);
+    glLineWidth(1.5f);
     glBegin(GL_LINE_STRIP);
     glColor3f(R,G,B);
     glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
@@ -819,23 +595,18 @@ Vec3 axisX = Vec3(1,0,0);
 Vec3 axisY = Vec3(0,1,0);
 Vec3 axisZ = Vec3(0,0,1);
 
+Cell cellTest = Cell(Vec3(mX,mY,0), tailleVoxel, 2);
+
 //Draw fonction
 void draw () {
 
     // drawReferenceFrame(centre,axisX, axisY, axisZ);
     updateColor();
-    if(display2D){
-        displayBoard2D();
-        displayBoard2DArea();
-    }
 
-    if(display3D){
-        displayBoard3D();
-        displayBoard3DArea();
-    }
+    displayGame2D();
 
     if(playTime){
-        nextGeneration();
+        GAME.nextGeneration2D();
     }
     if(displayModification){
         displayModif();
@@ -873,35 +644,20 @@ void key (unsigned char keyPressed, int x, int y) {
         }
         break;
 
-
-    case '+':
-        if(resolution < 150){
-            resolution++ ;
-            etats2D.resize(resolution, std::vector<int>(resolution, 0));
-        }
-        std::cout << "resolution : " << resolution << std::endl ;
-        break;
-    case '-':
-        if(resolution > 10){
-            resolution-- ;
-        }
-        std::cout << "resolution : " << resolution << std::endl ;
-        break;
-    
     case 'n':
-        nextGeneration();
+        GAME.nextGeneration2D();
         generation++ ;
         std::cout << "Génération n°" << generation << std::endl ;
         break;
 
     case 's':
-        soup();
+        GAME.soup2D(tailleSoupe);
         generation = 0 ;
         std::cout << "Soupe miam !" << std::endl ;
         break;
     
     case 'r':
-        reset();
+        GAME.reset();
         generation = 0 ;
         std::cout << "Reset !" << std::endl ;
         break;
@@ -916,9 +672,25 @@ void key (unsigned char keyPressed, int x, int y) {
         std::cout << "Modification !" << std::endl ;
         break ;
     
+    case '0':
+        std::cout << "Nb cellules vivantes : " << GAME.getNbCells() << std::endl ;
+        GAME.printCells();
+        break;
+    
     case ' ':
-        etats2D[X][Y] = !etats2D[X][Y] ;
-        std::cout << "Switch !" << std::endl ;
+        GAME.addCell(Cell(Vec3(mX,mY, 0), tailleVoxel, 1));
+        std::cout << "Cellule créer !" << std::endl ;
+        break;
+
+    case '+':
+        tailleSoupe++ ;
+        std::cout << "tailleSoupe = " << tailleSoupe << std::endl ;
+        break;
+
+    case '-':
+        if(tailleSoupe > 1)
+        tailleSoupe-- ;
+        std::cout << "tailleSoupe = " << tailleSoupe << std::endl ;
         break;
 
     case '2':
@@ -938,28 +710,19 @@ void key (unsigned char keyPressed, int x, int y) {
 void specialKey(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_UP:
-            if(X > 0){
-                mX+= tailleVoxel ;
-                X--;
-            }
+                mY += tailleVoxel ;
             break;
+
         case GLUT_KEY_DOWN:
-            if(X < resolution-1){
-                mX-= tailleVoxel ;
-                X++;
-            }
+                mY -= tailleVoxel ;
             break;
+
         case GLUT_KEY_RIGHT:
-            if(Y < resolution-1){
-                mY+= tailleVoxel ;
-                Y++;
-            }
+                mX += tailleVoxel ;
             break;
+
         case GLUT_KEY_LEFT:
-            if(Y > 0){
-                mY-= tailleVoxel ;
-                Y--;
-            }
+                mX -= tailleVoxel ;
             break;
     }
 }
@@ -1024,6 +787,7 @@ int main (int argc, char ** argv) {
     if (argc > 2) {
         exit (EXIT_FAILURE);
     }
+
     glutInit (&argc, argv);
     glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
     glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
@@ -1038,8 +802,6 @@ int main (int argc, char ** argv) {
     glutMotionFunc (motion);
     glutMouseFunc (mouse);
     key ('?', 0, 0);
-
-    reset();
 
     glutMainLoop ();
     return EXIT_SUCCESS;

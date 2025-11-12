@@ -61,6 +61,18 @@ public:
         mVals[1] /= s;
         mVals[2] /= s;
     }
+
+    bool operator==(const Vec3& other) const {
+        return mVals[0] == other.mVals[0] &&
+               mVals[1] == other.mVals[1] &&
+               mVals[2] == other.mVals[2];
+    }
+
+    bool operator!=(const Vec3& other) const {
+        return !(*this == other);
+    }
+
+
 };
 
 static inline Vec3 operator + (Vec3 const & a , Vec3 const & b) {
