@@ -94,7 +94,8 @@ class GameOfLife {
             std::mt19937 gen(rd());
             std::uniform_int_distribution<int> dist(0, 1);
 
-            // Calcul sur le plan orthogonal à Z (ajustable)
+            // Calcul sur le plan orthogonal à Z (ajustable : il faut aussi changer neighborPos2D() dans Cell.h)
+
             Vec3 p ;
             float x, y ;
             float base = (-this->sizeCell * float(res))/2.f ;
@@ -119,7 +120,6 @@ class GameOfLife {
             std::mt19937 gen(rd());
             std::uniform_int_distribution<int> dist(0, 1);
 
-            // Calcul sur le plan orthogonal à Z (ajustable)
             Vec3 p ;
             float x, y, z ;
             float sc = this->sizeCell ;
@@ -166,13 +166,25 @@ class GameOfLife {
             return actuelState ;
         }
 
+        int nextState3D(Cell c, std::vector<Cell> tab){
+
+            int nbNeighbor = 0 ;
+            std::vector<Vec3> neighborPos = c.neighborPos3D() ;
+            for(Vec3 v : neighborPos){
+                if(isAlive(v, tab)) nbNeighbor++ ;
+            }
+
+            int actuelState = c.getState() ;
+            if((actuelState == 0) && (nbNeighbor == 4)){return 1 ;}
+            if((actuelState == 1) && (nbNeighbor != 3) && (nbNeighbor != 4)){return 0 ;}
+            return actuelState ;
+        }
+
         void nextGeneration2D(){
 
             std::vector<Cell> currentGen = this->tabCell ;
             std::vector<Cell> allCells, finalCells ;
             bool exists ;
-
-            std::cout << "nbCell vivante : " << currentGen.size() << std::endl ;
 
             // On calcul toutes les cellules à analyser
             allCells = currentGen ;
@@ -195,6 +207,40 @@ class GameOfLife {
             // On analyse
             for(Cell c : allCells){
                 if(nextState2D(c, this->tabCell)){
+                    finalCells.push_back(Cell(c.getPosition(), c.getSize(), 1));
+                }
+            }
+
+            this->tabCell = finalCells ;
+        }
+
+        void nextGeneration3D(){
+
+            std::vector<Cell> currentGen = this->tabCell ;
+            std::vector<Cell> allCells, finalCells ;
+            bool exists ;
+
+            // On calcul toutes les cellules à analyser
+            allCells = currentGen ;
+            for (Cell c : currentGen) {
+                for (Vec3 pos : c.neighborPos3D()) {
+
+                    exists = false ;
+                    for (Cell c : allCells){
+                        if (isSamePosition(c.getPosition(), pos)){
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists){
+                        allCells.push_back(Cell(pos, this->sizeCell, isAlive(pos, this->tabCell) ? 1 : 0));
+                    }
+                }
+            }
+
+            // On analyse
+            for(Cell c : allCells){
+                if(nextState3D(c, this->tabCell)){
                     finalCells.push_back(Cell(c.getPosition(), c.getSize(), 1));
                 }
             }

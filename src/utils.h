@@ -254,7 +254,7 @@ bool isEquals(Vec3 a, Vec3 b){
     return a[0]==b[0] && a[1]==b[1] && a[2]==b[2] ;
 }
 
-bool isSamePosition(const Vec3& a, const Vec3& b, float epsilon = 1e-4f) {
+bool isSamePosition(const Vec3& a, const Vec3& b, float epsilon = 1e-3f) {
     return std::fabs(a[0] - b[0]) < epsilon
         && std::fabs(a[1] - b[1]) < epsilon
         && std::fabs(a[2] - b[2]) < epsilon;

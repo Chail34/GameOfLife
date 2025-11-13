@@ -429,10 +429,14 @@ float mX = 0, mY = 0 ;
 
 unsigned int GlobalTime = 0 ;
 unsigned int vitesse = 1 ;
-int generation = 0 ;
+int generation2D = 0 ;
+int generation3D = 0 ;
 
-std::vector<Cell> CELLS ;
-GameOfLife GAME = GameOfLife(CELLS, tailleVoxel) ;
+std::vector<Cell> CELLS_2D ;
+GameOfLife GAME_2D = GameOfLife(CELLS_2D, tailleVoxel) ;
+
+std::vector<Cell> CELLS_3D ;
+GameOfLife GAME_3D = GameOfLife(CELLS_3D, tailleVoxel) ;
 
 // Appelée à chaque frame
 void updateColor() {
@@ -446,16 +450,7 @@ void updateColor() {
 // Affichages du jeu de la vie
 void DisplayCell(Cell c){
     
-    float color ;
-    int state = c.getState() ;
-
-    if(state == 1){
-        color = 255.0f ;
-    }else if(state == 0){
-        color = 0.0f ;
-    }else{
-        color = 128.0f ;
-    }
+    Vec3 color = c.getColor() ;
 
     std::vector<Vec3> vv ; // On va créer un tableau pour stocker les sommets de notre voxel (voxel_vertice)
     vv = sommetsCube(c.getPosition(), c.getSize()) ;
@@ -463,7 +458,7 @@ void DisplayCell(Cell c){
     //On créer chaque face manuellement :
     glBegin(GL_QUAD_STRIP);
     // glColor3f(R,G,B);
-    glColor3f(color/255.f,color/255.f,color/255.f);
+    glColor3f(color[0],color[1],color[2]);
     
     // Face du bas
     glVertex3f(vv[0][0],vv[0][1],vv[0][2]);
@@ -534,16 +529,17 @@ void DisplayCell(Cell c){
 }
 
 void displayGame2D(){
-
-    std::vector<Cell> cells = GAME.getTabCell() ;
+    std::vector<Cell> cells = GAME_2D.getTabCell() ;
     for(Cell cell : cells){
         DisplayCell(cell) ;
     }
 }
 
-void displayBoard3D(){
-
-
+void displayGame3D(){
+    std::vector<Cell> cells = GAME_3D.getTabCell() ;
+    for(Cell cell : cells){
+        DisplayCell(cell) ;
+    }
 }
 
 void displayModif(){
@@ -603,10 +599,14 @@ void draw () {
     // drawReferenceFrame(centre,axisX, axisY, axisZ);
     updateColor();
 
+    if(display2D)
     displayGame2D();
 
+    if(display3D)
+    displayGame3D() ;
+
     if(playTime){
-        GAME.nextGeneration2D();
+        GAME_2D.nextGeneration2D();
     }
     if(displayModification){
         displayModif();
@@ -645,20 +645,35 @@ void key (unsigned char keyPressed, int x, int y) {
         break;
 
     case 'n':
-        GAME.nextGeneration2D();
-        generation++ ;
-        std::cout << "Génération n°" << generation << std::endl ;
+        if(display2D){
+            GAME_2D.nextGeneration2D();
+            generation2D++ ;
+        }
+        if(display3D){
+            GAME_3D.nextGeneration3D();
+            generation3D++ ;
+        }
+        std::cout << "Génération n°" << generation2D << std::endl ;
         break;
 
     case 's':
-        GAME.soup2D(tailleSoupe);
-        generation = 0 ;
+        if(display2D){
+            GAME_2D.soup2D(tailleSoupe);
+            generation2D = 0 ;
+        }
+        if(display3D){
+            GAME_3D.soup3D(tailleSoupe);
+            generation3D = 0 ;
+        }
+
         std::cout << "Soupe miam !" << std::endl ;
         break;
     
     case 'r':
-        GAME.reset();
-        generation = 0 ;
+        GAME_2D.reset();
+        GAME_3D.reset();
+        generation2D = 0 ;
+        generation3D = 0 ;
         std::cout << "Reset !" << std::endl ;
         break;
 
@@ -673,12 +688,12 @@ void key (unsigned char keyPressed, int x, int y) {
         break ;
     
     case '0':
-        std::cout << "Nb cellules vivantes : " << GAME.getNbCells() << std::endl ;
-        GAME.printCells();
+        std::cout << "Nb cellules vivantes : " << GAME_2D.getNbCells() << std::endl ;
+        GAME_2D.printCells();
         break;
     
     case ' ':
-        GAME.addCell(Cell(Vec3(mX,mY, 0), tailleVoxel, 1));
+        GAME_2D.addCell(Cell(Vec3(mX,mY, 0), tailleVoxel, 1));
         std::cout << "Cellule créer !" << std::endl ;
         break;
 
@@ -695,10 +710,12 @@ void key (unsigned char keyPressed, int x, int y) {
 
     case '2':
         display2D = !display2D ;
+        std::cout << "2D !" << std::endl ;
         break;
     
     case '3':
         display3D = !display3D ;
+        std::cout << "3D !" << std::endl ;
         break;
 
     default:

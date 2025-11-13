@@ -15,6 +15,7 @@ class Cell {
         Vec3 position ;
         float size ;
         int state ;
+        Vec3 color ;
 
     public:
 
@@ -25,6 +26,13 @@ class Cell {
             this->position = p ;
             this->size = si ;
             this->state = st ;
+            this->color = Vec3(1,1,1);
+        }
+        Cell(Vec3 p, float si, int st, Vec3 c){
+            this->position = p ;
+            this->size = si ;
+            this->state = st ;
+            this->color = c;
         }
 
         // GETTER & SETTER
@@ -32,10 +40,12 @@ class Cell {
         Vec3 getPosition(){return this->position ;}
         float getSize(){return this->size ;}
         int getState(){return this->state ;}
+        Vec3 getColor(){return this->color ;}
 
         void setPosition(Vec3 p){this->position = p ;}
         void setSize(float s){this->size = s ;}
         void setState(int s){this->state = s ;}
+        void setColor(Vec3 c){this->color = c ;}
 
         // OTHER METHODS
 
@@ -47,7 +57,7 @@ class Cell {
 
         std::vector<Vec3> neighborPos2D(){
 
-            // Calcul sur le plan orthogonal à Z (ajustable)
+            // Calcul sur le plan orthogonal à Z (ajustable : il faut aussi modifier soup2D() dans GameOfLife.h)
 
             float dist = this->size ;
             return {Vec3(this->position[0] + dist , this->position[1] + dist , 0.0f),
