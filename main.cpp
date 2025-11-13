@@ -408,12 +408,6 @@ void drawNormals(Mesh const& i_mesh){
 
 // ------------------------------------------------------------------------------------------------------------------------
 
-// Création VAO / VBO / EBO
-// - VAO : Vertex Array Object, sert à stocker la configuration des VBO
-// - VBO : Vertex Buffer Object, est une zone mémoire sur le GPU où stocker les sommets de la grille
-// - EBO : Indices des éléments du VBO
-
-
 // Variables globales
 bool playTime = false ;
 bool displayModification = false ;
@@ -425,7 +419,7 @@ float t = 0.0f; // "temps" simulé
 int tailleSoupe = 50 ;
 
 double tailleVoxel = 0.02f;
-float mX = 0, mY = 0 ;
+float mX = 0, mY = 0, mZ = 0 ;
 
 unsigned int GlobalTime = 0 ;
 unsigned int vitesse = 1 ;
@@ -478,8 +472,8 @@ void DisplayCell(Cell c){
     glVertex3f(vv[0][0],vv[0][1],vv[0][2]);
     glVertex3f(vv[1][0],vv[1][1],vv[1][2]);
     glEnd();
+
     glBegin(GL_QUADS);
-    
     // Face arrière
     glVertex3f(vv[0][0],vv[0][1],vv[0][2]);
     glVertex3f(vv[2][0],vv[2][1],vv[2][2]);
@@ -493,39 +487,39 @@ void DisplayCell(Cell c){
     glVertex3f(vv[5][0],vv[5][1],vv[5][2]);         
     glEnd();
 
-    // affichage des aretes
-    glLineWidth(2.f);
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
-    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
-    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
-    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
-    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
-    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
-    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
-    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
-    glEnd();
+    // // affichage des aretes
+    // glLineWidth(2.f);
+    // glBegin(GL_LINE_STRIP);
+    // glColor3f(0,0,0);
+    // glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
+    // glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
+    // glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
+    // glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
+    // glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
+    // glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
+    // glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
+    // glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
+    // glEnd();
 
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
-    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
-    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
-    glEnd();
+    // glBegin(GL_LINE_STRIP);
+    // glColor3f(0,0,0);
+    // glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
+    // glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
+    // glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
+    // glEnd();
 
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
-    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
-    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
-    glEnd();
+    // glBegin(GL_LINE_STRIP);
+    // glColor3f(0,0,0);
+    // glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
+    // glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
+    // glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
+    // glEnd();
 
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0,0,0);
-    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
-    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
-    glEnd();
+    // glBegin(GL_LINE_STRIP);
+    // glColor3f(0,0,0);
+    // glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
+    // glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
+    // glEnd();
 }
 
 void displayGame2D(){
@@ -536,6 +530,9 @@ void displayGame2D(){
 }
 
 void displayGame3D(){
+
+    
+
     std::vector<Cell> cells = GAME_3D.getTabCell() ;
     for(Cell cell : cells){
         DisplayCell(cell) ;
@@ -546,7 +543,7 @@ void displayModif(){
 
     float R,G,B ;
     R = 1.f ; G = 0.f ; B = 0.f ;
-    Vec3 centreVoxel = Vec3(mX, mY, 0) ;
+    Vec3 centreVoxel = Vec3(mX, mY, mZ) ;
     
     std::vector<Vec3> vv ; // On va créer un tableau pour stocker les sommets de notre voxel (voxel_vertice)
     vv = sommetsCube(centreVoxel, tailleVoxel*1.05f) ;
@@ -591,8 +588,6 @@ Vec3 axisX = Vec3(1,0,0);
 Vec3 axisY = Vec3(0,1,0);
 Vec3 axisZ = Vec3(0,0,1);
 
-Cell cellTest = Cell(Vec3(mX,mY,0), tailleVoxel, 2);
-
 //Draw fonction
 void draw () {
 
@@ -607,6 +602,7 @@ void draw () {
 
     if(playTime){
         GAME_2D.nextGeneration2D();
+        GAME_3D.nextGeneration3D();
     }
     if(displayModification){
         displayModif();
@@ -665,7 +661,6 @@ void key (unsigned char keyPressed, int x, int y) {
             GAME_3D.soup3D(tailleSoupe);
             generation3D = 0 ;
         }
-
         std::cout << "Soupe miam !" << std::endl ;
         break;
     
@@ -688,12 +683,21 @@ void key (unsigned char keyPressed, int x, int y) {
         break ;
     
     case '0':
-        std::cout << "Nb cellules vivantes : " << GAME_2D.getNbCells() << std::endl ;
-        GAME_2D.printCells();
+        if(display2D){
+            std::cout << "Nb cellules vivantes : " << GAME_2D.getNbCells() << std::endl ;
+            GAME_2D.printCells();
+        }
+        if(display3D){
+            std::cout << "Nb cellules vivantes : " << GAME_3D.getNbCells() << std::endl ;
+            GAME_3D.printCells();
+        }
         break;
     
     case ' ':
+        if(display2D)
         GAME_2D.addCell(Cell(Vec3(mX,mY, 0), tailleVoxel, 1));
+        if(display3D)
+        GAME_3D.addCell(Cell(Vec3(mX,mY, mZ), tailleVoxel, 1));
         std::cout << "Cellule créer !" << std::endl ;
         break;
 
@@ -716,6 +720,14 @@ void key (unsigned char keyPressed, int x, int y) {
     case '3':
         display3D = !display3D ;
         std::cout << "3D !" << std::endl ;
+        break;
+
+    case 'v':
+        mZ += tailleVoxel ;
+        break;
+    
+    case 'b':
+        mZ -= tailleVoxel ;
         break;
 
     default:

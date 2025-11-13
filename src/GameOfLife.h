@@ -188,11 +188,11 @@ class GameOfLife {
 
             // On calcul toutes les cellules à analyser
             allCells = currentGen ;
-            for (Cell c : currentGen) {
-                for (Vec3 pos : c.neighborPos2D()) {
+            for (Cell c : currentGen) { // Toutes les cellules vivantes
+                for (Vec3 pos : c.neighborPos2D()) { // Leurs voisines
 
                     exists = false ;
-                    for (Cell c : allCells){
+                    for (Cell c : allCells){ // On vérifie que la cellule n'est pas déjà dans la liste
                         if (isSamePosition(c.getPosition(), pos)){
                             exists = true;
                             break;
@@ -205,7 +205,7 @@ class GameOfLife {
             }
 
             // On analyse
-            for(Cell c : allCells){
+            for(Cell c : allCells){ // Pour chaque cellules, on regarde son état à la prochaine génération, puis on garde si elle est vivante
                 if(nextState2D(c, this->tabCell)){
                     finalCells.push_back(Cell(c.getPosition(), c.getSize(), 1));
                 }

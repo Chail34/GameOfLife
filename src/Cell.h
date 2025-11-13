@@ -12,6 +12,7 @@
 class Cell {
 
     private:
+    
         Vec3 position ;
         float size ;
         int state ;
@@ -60,45 +61,64 @@ class Cell {
             // Calcul sur le plan orthogonal à Z (ajustable : il faut aussi modifier soup2D() dans GameOfLife.h)
 
             float dist = this->size ;
-            return {Vec3(this->position[0] + dist , this->position[1] + dist , 0.0f),
-                    Vec3(this->position[0] + dist , this->position[1] , 0.0f),
-                    Vec3(this->position[0] + dist , this->position[1] - dist , 0.0f),
-                    Vec3(this->position[0] , this->position[1] + dist , 0.0f),
-                    Vec3(this->position[0] , this->position[1] - dist , 0.0f),
-                    Vec3(this->position[0] - dist , this->position[1] + dist , 0.0f),
-                    Vec3(this->position[0] - dist , this->position[1] , 0.0f),
-                    Vec3(this->position[0] - dist , this->position[1] - dist , 0.0f)} ;
+            float posX = this->position[0] ;
+            float posY = this->position[1] ;
+            float top = posX + dist ;
+            float bottom = posX - dist ;
+            float right = posY + dist ;
+            float left = posY - dist ;
+
+            return {Vec3(top, right, 0.0f),
+                    Vec3(top, posY, 0.0f),
+                    Vec3(top, left, 0.0f),
+                    Vec3(posX, right, 0.0f),
+                    Vec3(posX, left, 0.0f),
+                    Vec3(bottom, right, 0.0f),
+                    Vec3(bottom, posY, 0.0f),
+                    Vec3(bottom, left, 0.0f)} ;
         }
 
         std::vector<Vec3> neighborPos3D(){
             
-            float dist = this->size/2.f ;
-            return {Vec3(this->position[0] - dist , this->position[1] - dist, this->position[2] - dist)
-                   ,Vec3(this->position[0] - dist , this->position[1] - dist, this->position[2])
-                   ,Vec3(this->position[0] - dist , this->position[1] - dist, this->position[2] + dist)
-                   ,Vec3(this->position[0] - dist , this->position[1], this->position[2] - dist)
-                   ,Vec3(this->position[0] - dist , this->position[1], this->position[2])
-                   ,Vec3(this->position[0] - dist , this->position[1], this->position[2] + dist)
-                   ,Vec3(this->position[0] - dist , this->position[1] + dist, this->position[2] - dist)
-                   ,Vec3(this->position[0] - dist , this->position[1] + dist, this->position[2])
-                   ,Vec3(this->position[0] - dist , this->position[1] + dist, this->position[2] + dist)
-                   ,Vec3(this->position[0] , this->position[1] + dist, this->position[2] - dist)
-                   ,Vec3(this->position[0] , this->position[1] + dist, this->position[2])
-                   ,Vec3(this->position[0] , this->position[1] + dist, this->position[2] + dist)
-                   ,Vec3(this->position[0] , this->position[1], this->position[2] - dist)
-                   ,Vec3(this->position[0] , this->position[1], this->position[2] + dist)
-                   ,Vec3(this->position[0] , this->position[1] - dist, this->position[2] - dist)
-                   ,Vec3(this->position[0] , this->position[1] - dist, this->position[2])
-                   ,Vec3(this->position[0] , this->position[1] - dist, this->position[2] + dist)
-                   ,Vec3(this->position[0] + dist , this->position[1] - dist, this->position[2] - dist)
-                   ,Vec3(this->position[0] + dist , this->position[1] - dist, this->position[2])
-                   ,Vec3(this->position[0] + dist , this->position[1] - dist, this->position[2] + dist)
-                   ,Vec3(this->position[0] + dist , this->position[1], this->position[2] - dist)
-                   ,Vec3(this->position[0] + dist , this->position[1], this->position[2])
-                   ,Vec3(this->position[0] + dist , this->position[1], this->position[2] + dist)
-                   ,Vec3(this->position[0] + dist , this->position[1] + dist, this->position[2] - dist)
-                   ,Vec3(this->position[0] + dist , this->position[1] + dist, this->position[2])
-                   ,Vec3(this->position[0] + dist , this->position[1] + dist, this->position[2] + dist)} ;
+            float dist = this->size ;
+
+            float posX = this->position[0] ;
+            float posY = this->position[1] ;
+            float posZ = this->position[2] ;
+
+            float left = posX - dist ;
+            float right = posX + dist ;
+            float top = posY - dist ;
+            float bottom = posY + dist ;
+            float back = posZ - dist ;
+            float front = posZ + dist ;
+
+            return {Vec3(left, top, back)
+                   ,Vec3(left, top, posZ)
+                   ,Vec3(left, top, front)
+                   ,Vec3(left, posY, back)
+                   ,Vec3(left, posY, posZ)
+                   ,Vec3(left, posY, front)
+                   ,Vec3(left, bottom, back)
+                   ,Vec3(left, bottom, posZ)
+                   ,Vec3(left, bottom, front)
+                   ,Vec3(posX , top, back)
+                   ,Vec3(posX , top, posZ)
+                   ,Vec3(posX , top, front)
+                   ,Vec3(posX , posY, back)
+                   ,Vec3(posX , posY, front)
+                   ,Vec3(posX , bottom, back)
+                   ,Vec3(posX , bottom, posZ)
+                   ,Vec3(posX , bottom, front)
+                   ,Vec3(right, top, back)
+                   ,Vec3(right, top, posZ)
+                   ,Vec3(right, top, front)
+                   ,Vec3(right, posY, back)
+                   ,Vec3(right, posY, posZ)
+                   ,Vec3(right, posY, front)
+                   ,Vec3(right, bottom, back)
+                   ,Vec3(right, bottom, posZ)
+                   ,Vec3(right, bottom, front)} ;
         }
 
         void printCell(){
