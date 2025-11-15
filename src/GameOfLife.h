@@ -9,6 +9,8 @@
 #include <float.h>
 #include <iostream>
 #include <algorithm>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "Vec3.h"
 #include "Cell.h"
@@ -66,6 +68,8 @@ class GameOfLife {
         // Boolean
 
         bool isAlive(Vec3 pos, std::vector<Cell> tab){
+            // Complexité : O(n) où n le nombre de cellules vivantes
+
             // Si cette position appartient à une cellule du jeu, alors c'est la position d'une cellule vivante
             for(Cell c : tab){
                 if(isSamePosition(c.getPosition(), pos))
@@ -75,6 +79,7 @@ class GameOfLife {
         }
 
         void addCell(Cell c){ // Ajoute sans doublons
+            // Complexité : O(n) où n le nombre de cellules vivantes
             std::vector<Cell> t = this->tabCell ;
             if(std::find(t.begin(), t.end(), c) == t.end()) // Si le tableau ne contient pas c 
             this->tabCell.push_back(c);
@@ -179,75 +184,120 @@ class GameOfLife {
             if((actuelState == 1) && (nbNeighbor != 3) && (nbNeighbor != 4)){return 0 ;}
             return actuelState ;
         }
-
         void nextGeneration2D(){
+            // Hash encode/decode helpers
+            auto encode = [](int x, int y)->int64_t{
+                return ( (int64_t)x << 32 ) ^ (uint32_t)y;
+            };
+            auto decode = [](int64_t key)->std::pair<int,int>{
+                int x = int(key >> 32);
+                int y = int(uint32_t(key & 0xffffffff));
+                return {x,y};
+            };
 
-            std::vector<Cell> currentGen = this->tabCell ;
-            std::vector<Cell> allCells, finalCells ;
-            bool exists ;
+            const float sc = this->sizeCell;
 
-            // On calcul toutes les cellules à analyser
-            allCells = currentGen ;
-            for (Cell c : currentGen) { // Toutes les cellules vivantes
-                for (Vec3 pos : c.neighborPos2D()) { // Leurs voisines
+            // Build alive set (grid coordinates)
+            std::unordered_set<int64_t> alive;
+            for(Cell c : this->tabCell){
+                int ix = lround(c.getPosition()[0] / sc);
+                int iy = lround(c.getPosition()[1] / sc);
+                alive.insert(encode(ix, iy));
+            }
 
-                    exists = false ;
-                    for (Cell c : allCells){ // On vérifie que la cellule n'est pas déjà dans la liste
-                        if (isSamePosition(c.getPosition(), pos)){
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (!exists){
-                        allCells.push_back(Cell(pos, this->sizeCell, isAlive(pos, this->tabCell) ? 1 : 0));
+            // Count neighbors for every neighbor of every alive cell
+            std::unordered_map<int64_t, int> neighborCount;
+            for(const int64_t key : alive){
+                auto [ix, iy] = decode(key);
+                for(int dx = -1; dx <= 1; ++dx){
+                    for(int dy = -1; dy <= 1; ++dy){
+                        if(dx == 0 && dy == 0) continue;
+                        neighborCount[ encode(ix + dx, iy + dy) ]++;
                     }
                 }
             }
 
-            // On analyse
-            for(Cell c : allCells){ // Pour chaque cellules, on regarde son état à la prochaine génération, puis on garde si elle est vivante
-                if(nextState2D(c, this->tabCell)){
-                    finalCells.push_back(Cell(c.getPosition(), c.getSize(), 1));
+            // Determine next generation in linear time
+            std::vector<Cell> next;
+            next.reserve(neighborCount.size()); // heuristic
+
+            // Also include currently alive cells that had zero neighbor entries (isolated),
+            // need to consider them: they have 0 neighbors and should die, so no add.
+            for(const auto &kv : neighborCount){
+                int64_t key = kv.first;
+                int cnt = kv.second;
+                bool isCurrAlive = (alive.find(key) != alive.end());
+                if((!isCurrAlive && cnt == 3) || (isCurrAlive && (cnt == 2 || cnt == 3))){
+                    auto [ix, iy] = decode(key);
+                    Vec3 p( ix * sc, iy * sc, 0.f );
+                    next.emplace_back( Cell(p, sc, 1) );
                 }
             }
 
-            this->tabCell = finalCells ;
+            this->tabCell = std::move(next);
         }
 
         void nextGeneration3D(){
+            // Hash key for 3D integer grid coords
+            struct Key {
+                int x, y, z;
+                Key(int a=0,int b=0,int c=0):x(a),y(b),z(c){}
+                bool operator==(Key const& o) const noexcept { return x==o.x && y==o.y && z==o.z; }
+            };
+            struct KeyHash {
+                size_t operator()(Key const& k) const noexcept {
+                    // simple spatial hash (large prime multipliers)
+                    return (static_cast<size_t>(k.x) * 73856093u)
+                         ^ (static_cast<size_t>(k.y) * 19349663u)
+                         ^ (static_cast<size_t>(k.z) * 83492791u);
+                }
+            };
 
-            std::vector<Cell> currentGen = this->tabCell ;
-            std::vector<Cell> allCells, finalCells ;
-            bool exists ;
+            const float sc = this->sizeCell;
 
-            // On calcul toutes les cellules à analyser
-            allCells = currentGen ;
-            for (Cell c : currentGen) {
-                for (Vec3 pos : c.neighborPos3D()) {
+            // Build alive set (grid coordinates)
+            std::unordered_set<Key, KeyHash> alive;
+            alive.reserve(this->tabCell.size()*2);
+            for(Cell c : this->tabCell){
+                int ix = lround(c.getPosition()[0] / sc);
+                int iy = lround(c.getPosition()[1] / sc);
+                int iz = lround(c.getPosition()[2] / sc);
+                alive.insert(Key(ix, iy, iz));
+            }
 
-                    exists = false ;
-                    for (Cell c : allCells){
-                        if (isSamePosition(c.getPosition(), pos)){
-                            exists = true;
-                            break;
+            // Count neighbors for every neighbor of every alive cell (26 neighbors)
+            std::unordered_map<Key, int, KeyHash> neighborCount;
+            neighborCount.reserve(alive.size()*27);
+            for(auto const &key : alive){
+                for(int dx=-1; dx<=1; ++dx){
+                    for(int dy=-1; dy<=1; ++dy){
+                        for(int dz=-1; dz<=1; ++dz){
+                            if(dx==0 && dy==0 && dz==0) continue;
+                            Key nk(key.x + dx, key.y + dy, key.z + dz);
+                            ++neighborCount[nk];
                         }
                     }
-                    if (!exists){
-                        allCells.push_back(Cell(pos, this->sizeCell, isAlive(pos, this->tabCell) ? 1 : 0));
-                    }
                 }
             }
 
-            // On analyse
-            for(Cell c : allCells){
-                if(nextState3D(c, this->tabCell)){
-                    finalCells.push_back(Cell(c.getPosition(), c.getSize(), 1));
+            // Determine next generation
+            std::vector<Cell> next;
+            next.reserve(neighborCount.size());
+
+            for(auto const &kv : neighborCount){
+                const Key &k = kv.first;
+                int cnt = kv.second;
+                bool isCurrAlive = (alive.find(k) != alive.end());
+                // 3D rules in your code: birth at 4, survival at 3 or 4
+                if((!isCurrAlive && cnt == 4) || (isCurrAlive && (cnt == 3 || cnt == 4))){
+                    Vec3 p( k.x * sc, k.y * sc, k.z * sc );
+                    next.emplace_back(Cell(p, sc, 1));
                 }
             }
 
-            this->tabCell = finalCells ;
+            // Note: isolated currently-alive cells (0 neighbors) will die (no entry in neighborCount)
+            this->tabCell = std::move(next);
         }
-
 
         void printCells(){
             for(Cell c : this->tabCell){

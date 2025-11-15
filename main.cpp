@@ -487,39 +487,39 @@ void DisplayCell(Cell c){
     glVertex3f(vv[5][0],vv[5][1],vv[5][2]);         
     glEnd();
 
-    // // affichage des aretes
-    // glLineWidth(2.f);
-    // glBegin(GL_LINE_STRIP);
-    // glColor3f(0,0,0);
-    // glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
-    // glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
-    // glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
-    // glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
-    // glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
-    // glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
-    // glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
-    // glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
-    // glEnd();
+    // affichage des aretes
+    glLineWidth(2.f);
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
+    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
+    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
+    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
+    glVertex3f(vv[0][0], vv[0][1], vv[0][2]);
+    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
+    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
+    glVertex3f(vv[1][0], vv[1][1], vv[1][2]);
+    glEnd();
 
-    // glBegin(GL_LINE_STRIP);
-    // glColor3f(0,0,0);
-    // glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
-    // glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
-    // glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
-    // glEnd();
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[2][0], vv[2][1], vv[2][2]);
+    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
+    glVertex3f(vv[4][0], vv[4][1], vv[4][2]);
+    glEnd();
 
-    // glBegin(GL_LINE_STRIP);
-    // glColor3f(0,0,0);
-    // glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
-    // glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
-    // glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
-    // glEnd();
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[3][0], vv[3][1], vv[3][2]);
+    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
+    glVertex3f(vv[5][0], vv[5][1], vv[5][2]);
+    glEnd();
 
-    // glBegin(GL_LINE_STRIP);
-    // glColor3f(0,0,0);
-    // glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
-    // glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
-    // glEnd();
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0,0,0);
+    glVertex3f(vv[6][0], vv[6][1], vv[6][2]);
+    glVertex3f(vv[7][0], vv[7][1], vv[7][2]);
+    glEnd();
 }
 
 void displayGame2D(){
@@ -531,12 +531,16 @@ void displayGame2D(){
 
 void displayGame3D(){
 
+    glPointSize(4.0);
+    glBegin(GL_POINTS);
+    glColor3f(1,1,1); // Couleur de la courbe
     
-
     std::vector<Cell> cells = GAME_3D.getTabCell() ;
     for(Cell cell : cells){
         DisplayCell(cell) ;
+        // glVertex3f(cell.getPosition()[0], cell.getPosition()[1], cell.getPosition()[2]);
     }
+    glEnd();
 }
 
 void displayModif(){
