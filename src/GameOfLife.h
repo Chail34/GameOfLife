@@ -145,6 +145,15 @@ class GameOfLife {
             }
         }
 
+        void split(){
+            int nbCells = this->tabCell.size() ;
+            for(int i = 0 ; i < nbCells ; i++){
+                if(i%2 == 0){
+                    this->tabCell.erase(this->tabCell.begin() + i);
+                }
+            }
+        }
+
         std::vector<Cell> convertInAliveCells(std::vector<Vec3> pos, float sizeCell){
             std::vector<Cell> cells ;
             Cell cell ;
@@ -157,33 +166,6 @@ class GameOfLife {
             return cells ;
         }
 
-        int nextState2D(Cell c, std::vector<Cell> tab){
-
-            int nbNeighbor = 0 ;
-            std::vector<Vec3> neighborPos = c.neighborPos2D() ;
-            for(Vec3 v : neighborPos){
-                if(isAlive(v, tab)) nbNeighbor++ ;
-            }
-
-            int actuelState = c.getState() ;
-            if((actuelState == 0) && (nbNeighbor == 3)){return 1 ;}
-            if((actuelState == 1) && (nbNeighbor != 2) && (nbNeighbor != 3)){return 0 ;}
-            return actuelState ;
-        }
-
-        int nextState3D(Cell c, std::vector<Cell> tab){
-
-            int nbNeighbor = 0 ;
-            std::vector<Vec3> neighborPos = c.neighborPos3D() ;
-            for(Vec3 v : neighborPos){
-                if(isAlive(v, tab)) nbNeighbor++ ;
-            }
-
-            int actuelState = c.getState() ;
-            if((actuelState == 0) && (nbNeighbor == 4)){return 1 ;}
-            if((actuelState == 1) && (nbNeighbor != 3) && (nbNeighbor != 4)){return 0 ;}
-            return actuelState ;
-        }
         void nextGeneration2D(){
             // Hash encode/decode helpers
             auto encode = [](int x, int y)->int64_t{
@@ -289,7 +271,7 @@ class GameOfLife {
                 int cnt = kv.second;
                 bool isCurrAlive = (alive.find(k) != alive.end());
                 // 3D rules in your code: birth at 4, survival at 3 or 4
-                if((!isCurrAlive && cnt == 4) || (isCurrAlive && (cnt == 3 || cnt == 4))){
+                if((!isCurrAlive && cnt == 3) || (isCurrAlive && (cnt == 2 || cnt == 3))){
                     Vec3 p( k.x * sc, k.y * sc, k.z * sc );
                     next.emplace_back(Cell(p, sc, 1));
                 }

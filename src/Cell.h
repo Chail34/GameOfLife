@@ -38,10 +38,10 @@ class Cell {
 
         // GETTER & SETTER
 
-        Vec3 getPosition(){return this->position ;}
+        const Vec3& getPosition(){return this->position ;}
         float getSize(){return this->size ;}
         int getState(){return this->state ;}
-        Vec3 getColor(){return this->color ;}
+        const Vec3& getColor(){return this->color ;}
 
         void setPosition(Vec3 p){this->position = p ;}
         void setSize(float s){this->size = s ;}

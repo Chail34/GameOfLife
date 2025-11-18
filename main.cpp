@@ -346,14 +346,14 @@ void drawAxis( Vec3 const & i_origin, Vec3 const & i_direction ) {
 
 void drawReferenceFrame( Vec3 const & origin, Vec3 const & i, Vec3 const & j, Vec3 const & k ) {
 
-    glDisable(GL_LIGHTING);
+    // glDisable(GL_LIGHTING);
     glColor3f( 0.8, 0.2, 0.2 );
     drawAxis( origin, i );
     glColor3f( 0.2, 0.8, 0.2 );
     drawAxis( origin, j );
     glColor3f( 0.2, 0.2, 0.8 );
     drawAxis( origin, k );
-    glEnable(GL_LIGHTING);
+    // glEnable(GL_LIGHTING);
 
 }
 
@@ -411,6 +411,7 @@ void drawNormals(Mesh const& i_mesh){
 // Variables globales
 bool playTime = false ;
 bool displayModification = false ;
+bool displayReferenceFrame = false ;
 bool display2D = true ;
 bool display3D = false ;
 
@@ -442,16 +443,25 @@ void updateColor() {
 }
 
 // Affichages du jeu de la vie
-void DisplayCell(Cell c){
+void DisplayCell(Cell &c){
     
     Vec3 color = c.getColor() ;
 
-    std::vector<Vec3> vv ; // On va créer un tableau pour stocker les sommets de notre voxel (voxel_vertice)
-    vv = sommetsCube(c.getPosition(), c.getSize()) ;
+    // Compute cube vertices on the stack (avoids allocating a std::vector each draw)
+    Vec3 p = c.getPosition();
+    float h = c.getSize() * 0.5f;
+    Vec3 vv[8];
+    vv[0] = Vec3(p[0]-h, p[1]-h, p[2]-h);
+    vv[1] = Vec3(p[0]+h, p[1]-h, p[2]-h);
+    vv[2] = Vec3(p[0]-h, p[1]+h, p[2]-h);
+    vv[3] = Vec3(p[0]+h, p[1]+h, p[2]-h);
+    vv[4] = Vec3(p[0]-h, p[1]-h, p[2]+h);
+    vv[5] = Vec3(p[0]+h, p[1]-h, p[2]+h);
+    vv[6] = Vec3(p[0]-h, p[1]+h, p[2]+h);
+    vv[7] = Vec3(p[0]+h, p[1]+h, p[2]+h);
     
     //On créer chaque face manuellement :
     glBegin(GL_QUAD_STRIP);
-    // glColor3f(R,G,B);
     glColor3f(color[0],color[1],color[2]);
     
     // Face du bas
@@ -479,7 +489,7 @@ void DisplayCell(Cell c){
     glVertex3f(vv[2][0],vv[2][1],vv[2][2]);
     glVertex3f(vv[6][0],vv[6][1],vv[6][2]);
     glVertex3f(vv[4][0],vv[4][1],vv[4][2]);         
-    
+
     // Face avant
     glVertex3f(vv[1][0],vv[1][1],vv[1][2]);
     glVertex3f(vv[3][0],vv[3][1],vv[3][2]);
@@ -530,15 +540,10 @@ void displayGame2D(){
 }
 
 void displayGame3D(){
-
-    glPointSize(4.0);
-    glBegin(GL_POINTS);
-    glColor3f(1,1,1); // Couleur de la courbe
     
     std::vector<Cell> cells = GAME_3D.getTabCell() ;
     for(Cell cell : cells){
         DisplayCell(cell) ;
-        // glVertex3f(cell.getPosition()[0], cell.getPosition()[1], cell.getPosition()[2]);
     }
     glEnd();
 }
@@ -595,8 +600,10 @@ Vec3 axisZ = Vec3(0,0,1);
 //Draw fonction
 void draw () {
 
-    // drawReferenceFrame(centre,axisX, axisY, axisZ);
     updateColor();
+    
+    if(displayReferenceFrame)
+    drawReferenceFrame(centre,axisX, axisY, axisZ);
 
     if(display2D)
     displayGame2D();
@@ -676,6 +683,14 @@ void key (unsigned char keyPressed, int x, int y) {
         std::cout << "Reset !" << std::endl ;
         break;
 
+    case '/':
+        if(display2D)
+        GAME_2D.split() ;
+        if(display3D)
+        GAME_3D.split() ;
+        std::cout << "Split !" << std::endl ;
+        break;
+
     case 'p':
         playTime = !playTime ;
         std::cout << "Temps !" << std::endl ;
@@ -685,15 +700,20 @@ void key (unsigned char keyPressed, int x, int y) {
         displayModification = !displayModification ;
         std::cout << "Modification !" << std::endl ;
         break ;
+
+    case '*':
+        displayReferenceFrame = !displayReferenceFrame ;
+        std::cout << "Référence !" << std::endl ;
+        break;
     
     case '0':
         if(display2D){
+            // GAME_2D.printCells();
             std::cout << "Nb cellules vivantes : " << GAME_2D.getNbCells() << std::endl ;
-            GAME_2D.printCells();
         }
         if(display3D){
+            // GAME_3D.printCells();
             std::cout << "Nb cellules vivantes : " << GAME_3D.getNbCells() << std::endl ;
-            GAME_3D.printCells();
         }
         break;
     
